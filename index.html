@@ -834,13 +834,28 @@
         const response = await post("/search/spending_by_award/", requestBody);
         const rawAwards = response.results || [];
 
-        if (!rawAwards.length) {
-          throw new Error("La API no devolvió adjudicaciones para esta combinación de filtros.");
-        }
-
         const awards = rawAwards
           .map(normalizeAward)
-          .filter((a) => a.amount > 0);
+          .filter((a) => a.amount >= 0); // permitimos 0 para ver algo
+        
+        if (!awards.length) {
+          // No hay datos, pero no es un error fatal del endpoint
+          $("#total").textContent = "—";
+          $("#transactions").textContent = "0";
+          $("#average").textContent = "—";
+          $("#topRecipient").textContent = "Sin datos";
+          $("#topAmount").textContent = "—";
+          drawTimeChart([]);
+          drawTypeChart([]);
+          drawTable([]);
+          const timestamp = new Intl.DateTimeFormat("es-ES", {
+            dateStyle: "medium",
+            timeStyle: "short"
+          }).format(new Date());
+          $("#lastUpdate").textContent = `Actualizado: ${timestamp} (sin adjudicaciones)`;
+          setLoading(false);
+          return;
+        }
 
         const total = awards.reduce((sum, a) => sum + a.amount, 0);
         const count = awards.length;
