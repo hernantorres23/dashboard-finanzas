@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f0e6">
+  <title>Áurea Finance · Dashboard</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --ink: #28251f;
+      --muted: #766f63;
+      --paper: #f5f0e6;
+      --surface: #fffdf8;
+      --border: #e1d6c4;
+      --olive: #66775d;
+      --olive-soft: #dce6d7;
+      --ochre: #b98448;
+      --terracotta: #a35e4b;
+      --blue-gray: #71878b;
+      --shadow: 0 12px 30px rgba(65, 51, 30, 0.09);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(211, 193, 161, 0.30), transparent 30%),
+        var(--paper);
+      font-family: Inter, Roboto, Arial, sans-serif;
+    }
+
+    button, select { font: inherit; }
+
+    .app {
+      width: min(100%, 1500px);
+      margin: 0 auto;
+      padding: clamp(16px, 3vw, 30px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      color: var(--olive);
+      font-size: 0.70rem;
+      font-weight: 850;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 5px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 5vw, 3.05rem);
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.045em;
+    }
+
+    .subtitle {
+      max-width: 680px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+      line-height: 1.5;
+    }
+
+    .connection {
+      min-width: 225px;
+      padding: 13px 15px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: rgba(255, 253, 248, 0.78);
+      box-shadow: var(--shadow);
+    }
+
+    .connection-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--olive);
+      box-shadow: 0 0 0 4px var(--olive-soft);
+    }
+
+    #lastUpdate {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 750;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr auto;
+      align-items: end;
+      gap: 13px;
+      padding: 17px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255, 253, 248, 0.82);
+      box-shadow: var(--shadow);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    select {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      color: var(--ink);
+      background: var(--surface);
+    }
+
+    select:focus {
+      border-color: var(--olive);
+      box-shadow: 0 0 0 3px rgba(102, 119, 93, 0.15);
+    }
+
+    .button {
+      min-height: 44px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #fffdf8;
+      background: var(--ink);
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+
+    .button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    .loading {
+      height: 3px;
+      margin: 17px 0 20px;
+      overflow: hidden;
+      border-radius: 999px;
+      opacity: 0;
+      background: var(--border);
+      transition: opacity 0.2s ease;
+    }
+
+    .loading.active { opacity: 1; }
+
+    .loading::after {
+      display: block;
+      width: 32%;
+      height: 100%;
+      content: "";
+      animation: move 1s infinite ease-in-out;
+      border-radius: inherit;
+      background: var(--olive);
+    }
+
+    @keyframes move {
+      from { transform: translateX(-115%); }
+      to { transform: translateX(360%); }
+    }
+
+    .error {
+      display: none;
+      margin-bottom: 18px;
+      padding: 13px 15px;
+      border: 1px solid #e7c4b9;
+      border-radius: 12px;
+      color: #743b2f;
+      background: #f8e8e3;
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+
+    .error.show { display: block; }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .kpi {
+      min-height: 144px;
+      padding: 19px;
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .kpi-value {
+      margin: 11px 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.75rem, 3vw, 2.4rem);
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.045em;
+    }
+
+    .kpi-note {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.3;
+    }
+
+    .olive { color: var(--olive); }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .chart-card {
+      min-height: 370px;
+      padding: 19px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 850;
+      letter-spacing: -0.02em;
+    }
+
+    .card-description {
+      margin: 6px 0 14px;
+      color: var(--muted);
+      font-size: 0.80rem;
+      line-height: 1.4;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 282px;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+    }
+
+    .table-card {
+      padding: 19px;
+      overflow: hidden;
+    }
+
+    .table-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .badge {
+      padding: 6px 9px;
+      border-radius: 999px;
+      color: var(--olive);
+      background: var(--olive-soft);
+      font-size: 0.68rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    th {
+      padding: 11px 9px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.67rem;
+      font-weight: 850;
+      letter-spacing: 0.07em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 13px 9px;
+      border-bottom: 1px solid #f0e9dd;
+    }
+
+    td:last-child,
+    th:last-child {
+      text-align: right;
+    }
+
+    .recipient {
+      max-width: 390px;
+      overflow: hidden;
+      font-weight: 750;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    footer {
+      margin: 18px 0 5px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 940px) {
+      .topbar { flex-direction: column; }
+
+      .connection {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .filters,
+      .kpis,
+      .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app { padding: 16px; }
+
+      .filters,
+      .kpis,
+      .dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .filters { padding: 14px; }
+
+      .button { width: 100%; }
+
+      .kpi,
+      .chart-card,
+      .table-card { padding: 16px; }
+
+      .chart-wrap { height: 255px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Áurea Finance · Inteligencia de gasto</div>
+        <h1>Vista ejecutiva de adjudicaciones</h1>
+        <p class="subtitle">
+          Dashboard actualizado desde USAspending API, con filtros por agencia,
+          año fiscal y tipo de adjudicación.
+        </p>
+      </div>
+
+      <aside class="connection">
+        <div class="connection-label">
+          <span class="dot"></span>
+          Fuente pública conectada
+        </div>
+        <time id="lastUpdate">Preparando consulta…</time>
+      </aside>
+    </header>
+
+    <section class="filters" aria-label="Filtros">
+      <div class="field">
+        <label for="agency">Agencia otorgante</label>
+        <select id="agency">
+          <option value="Department of Defense">Department of Defense</option>
+          <option value="Department of Health and Human Services">
+            Department of Health and Human Services
+          </option>
+          <option value="Department of Homeland Security">
+            Department of Homeland Security
+          </option>
+          <option value="Department of Veterans Affairs">
+            Department of Veterans Affairs
+          </option>
+          <option value="National Aeronautics and Space Administration">
+            National Aeronautics and Space Administration
+          </option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="year">Año fiscal</label>
+        <select id="year">
+          <option value="2025" selected>FY 2025</option>
+          <option value="2024">FY 2024</option>
+          <option value="2023">FY 2023</option>
+          <option value="2022">FY 2022</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="kind">Vista de adjudicación</label>
+        <select id="kind">
+          <option value="all" selected>Todos los tipos</option>
+          <option value="contracts">Contratos</option>
+          <option value="assistance">Asistencia financiera</option>
+        </select>
+      </div>
+
+      <button id="refresh" class="button" type="button">Actualizar datos</button>
+    </section>
+
+    <div id="loading" class="loading"></div>
+    <div id="error" class="error"></div>
+
+    <section class="kpis">
+      <article class="card kpi">
+        <div class="kpi-label">Obligaciones federales</div>
+        <div id="total" class="kpi-value">—</div>
+        <div class="kpi-note">Monto agregado según el filtro activo</div>
+      </article>
+
+      <article class="card kpi">
+        <div class="kpi-label">Adjudicaciones</div>
+        <div id="transactions" class="kpi-value">—</div>
+        <div class="kpi-note">Cantidad de adjudicaciones recuperadas</div>
+      </article>
+
+      <article class="card kpi">
+        <div class="kpi-label">Promedio transaccional</div>
+        <div id="average" class="kpi-value">—</div>
+        <div class="kpi-note">Obligación total dividida entre adjudicaciones</div>
+      </article>
+
+      <article class="card kpi">
+        <div class="kpi-label">Beneficiario principal</div>
+        <div id="topRecipient" class="kpi-value" style="font-size: 1.35rem">—</div>
+        <div id="topAmount" class="kpi-note olive">Calculando…</div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="card chart-card">
+        <h2 class="card-title">Evolución de obligaciones</h2>
+        <p class="card-description">Monto adjudicado acumulado por trimestre fiscal.</p>
+        <div class="chart-wrap">
+          <canvas id="timeChart"></canvas>
+        </div>
+      </article>
+
+      <article class="card chart-card">
+        <h2 class="card-title">Tipos de adjudicación</h2>
+        <p class="card-description">Distribución de adjudicaciones según la selección.</p>
+        <div class="chart-wrap">
+          <canvas id="typeChart"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-heading">
+        <div>
+          <h2 class="card-title">Detalle de adjudicaciones</h2>
+          <p class="card-description">Muestra una selección de adjudicaciones para revisar entidades.</p>
+        </div>
+        <span id="badge" class="badge">Esperando datos</span>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Beneficiario</th>
+              <th>Estado</th>
+              <th>Tipo</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody id="awardTable">
+            <tr>
+              <td colspan="4">Preparando consulta…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      Fuente: USAspending API. Esta demo está publicada como sitio estático; una
+      versión empresarial puede conservar esta interfaz beige y conectar sus
+      endpoints internos a PostgreSQL, Excel y APIs privadas.
+    </footer>
+  </main>
+
+  <script>
+    const API = "https://api.usaspending.gov/api/v2";
+
+    let timeChartInstance = null;
+    let typeChartInstance = null;
+
+    const $ = (selector) => document.querySelector(selector);
+
+    const compactUSD = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      notation: "compact",
+      maximumFractionDigits: 1
+    });
+
+    const fullUSD = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    });
+
+    const wholeNumber = new Intl.NumberFormat("en-US");
+
+    const groupCodes = {
+      all: [],
+      contracts: ["A", "B", "C", "D"],
+      assistance: ["02", "03", "04", "05", "06", "07", "08", "09", "10", "11"]
+    };
+
+    function dateRange(fiscalYear) {
+      const year = Number(fiscalYear);
+      return [{
+        start_date: `${year - 1}-10-01`,
+        end_date: `${year}-09-30`
+      }];
+    }
+
+    function filtersForSearch() {
+      const agencyName = $("#agency").value;
+      const year = $("#year").value;
+      const kind = $("#kind").value;
+
+      const filters = {
+        time_period: dateRange(year),
+        agencies: [{
+          type: "awarding",
+          tier: "toptier",
+          name: agencyName
+        }]
+      };
+
+      if (groupCodes[kind].length > 0) {
+        filters.award_type_codes = groupCodes[kind];
+      }
+
+      return filters;
+    }
+
+    async function post(path, body) {
+      const response = await fetch(`${API}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`USAspending respondió ${response.status}: ${text.slice(0, 220)}`);
+      }
+
+      return response.json();
+    }
+
+    function setLoading(loading) {
+      $("#loading").classList.toggle("active", loading);
+      $("#refresh").disabled = loading;
+      $("#refresh").textContent = loading ? "Consultando…" : "Actualizar datos";
+    }
+
+    function setError(message = "") {
+      const box = $("#error");
+      if (message) {
+        box.textContent = message;
+        box.classList.add("show");
+      } else {
+        box.textContent = "";
+        box.classList.remove("show");
+      }
+    }
+
+    function normalizeAward(raw) {
+      const amount =
+        Number(raw.award_amount ?? raw.Award_Amount ?? 0);
+
+      const recipient =
+        raw.recipient_name ??
+        raw.Recipient_Name ??
+        "Beneficiario no informado";
+
+      const state =
+        raw.recipient_state_code ??
+        raw.Recipient_State_Code ??
+        "—";
+
+      const type =
+        raw.award_type ??
+        raw.Award_Type ??
+        "—";
+
+      const dateStr =
+        raw.action_date ??
+        raw.Action_Date ??
+        null;
+
+      return { amount, recipient, state, type, dateStr };
+    }
+
+    function drawTimeChart(rows) {
+      const labels = rows.map((row) => row.label);
+      const values = rows.map((row) => row.value);
+
+      if (timeChartInstance) timeChartInstance.destroy();
+
+      timeChartInstance = new Chart($("#timeChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderColor: "#66775d",
+            backgroundColor: "rgba(102,119,93,0.14)",
+            fill: true,
+            borderWidth: 2.4,
+            tension: 0.35,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: "#fffdf8",
+            pointBorderColor: "#66775d",
+            pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#28251f",
+              titleColor: "#fffdf8",
+              bodyColor: "#fffdf8",
+              callbacks: {
+                label: (context) => fullUSD.format(context.raw)
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#766f63", maxRotation: 0 }
+            },
+            y: {
+              border: { display: false },
+              grid: { color: "rgba(225,214,196,0.82)" },
+              ticks: {
+                color: "#766f63",
+                callback: (value) => compactUSD.format(value)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function drawTypeChart(rows) {
+      const labels = rows.map((row) => row.label);
+      const values = rows.map((row) => row.value);
+
+      if (typeChartInstance) typeChartInstance.destroy();
+
+      typeChartInstance = new Chart($("#typeChart"), {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: [
+              "#66775d",
+              "#b98448",
+              "#71878b",
+              "#a35e4b",
+              "#c8b79c",
+              "#9da48f"
+            ],
+            borderColor: "#fffdf8",
+            borderWidth: 4,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "64%",
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: "#5d564c",
+                boxWidth: 11,
+                boxHeight: 11,
+                padding: 13,
+                usePointStyle: true,
+                pointStyle: "circle"
+              }
+            },
+            tooltip: {
+              backgroundColor: "#28251f",
+              titleColor: "#fffdf8",
+              bodyColor: "#fffdf8",
+              callbacks: {
+                label: (context) => `${context.label}: ${wholeNumber.format(context.raw)}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function drawTable(awards) {
+      const tbody = $("#awardTable");
+      tbody.innerHTML = "";
+
+      if (!awards.length) {
+        tbody.innerHTML =
+          "<tr><td colspan='4'>No hay adjudicaciones para este filtro.</td></tr>";
+        return;
+      }
+
+      awards.slice(0, 10).forEach((award) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="recipient">${award.recipient}</td>
+          <td>${award.state}</td>
+          <td>${award.type}</td>
+          <td>${fullUSD.format(award.amount)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      $("#badge").textContent =
+        `${wholeNumber.format(awards.length)} adjudicaciones`;
+    }
+
+    async function refreshDashboard() {
+      setLoading(true);
+      setError();
+
+      try {
+        const filters = filtersForSearch();
+
+        const requestBody = {
+          filters,
+          fields: [
+            "Award ID",
+            "Award Amount",
+            "Awarding Agency",
+            "Recipient Name",
+            "Recipient State Code",
+            "Award Type",
+            "Action Date"
+          ],
+          page: 1,
+          limit: 200,
+          subawards: false
+        };
+
+        const response = await post("/search/spending_by_award/", requestBody);
+        const rawAwards = response.results || [];
+
+        if (!rawAwards.length) {
+          throw new Error("La API no devolvió adjudicaciones para esta combinación de filtros.");
+        }
+
+        const awards = rawAwards
+          .map(normalizeAward)
+          .filter((a) => a.amount > 0);
+
+        const total = awards.reduce((sum, a) => sum + a.amount, 0);
+        const count = awards.length;
+
+        $("#total").textContent = compactUSD.format(total);
+        $("#transactions").textContent = wholeNumber.format(count);
+        $("#average").textContent =
+          count > 0 ? compactUSD.format(total / count) : "—";
+
+        const byRecipient = new Map();
+
+        awards.forEach((a) => {
+          const previous = byRecipient.get(a.recipient) || {
+            recipient: a.recipient,
+            state: a.state,
+            amount: 0
+          };
+          previous.amount += a.amount;
+          byRecipient.set(a.recipient, previous);
+        });
+
+        const recipients = [...byRecipient.values()]
+          .sort((a, b) => b.amount - a.amount);
+
+        if (recipients[0]) {
+          const top = recipients[0];
+          $("#topRecipient").textContent =
+            top.recipient.length > 25 ? `${top.recipient.slice(0, 25)}…` : top.recipient;
+          $("#topAmount").textContent = fullUSD.format(top.amount);
+        } else {
+          $("#topRecipient").textContent = "Sin datos";
+          $("#topAmount").textContent = "—";
+        }
+
+        const byQuarter = new Map();
+
+        awards.forEach((a) => {
+          if (!a.dateStr) return;
+          const d = new Date(a.dateStr);
+          if (Number.isNaN(d.getTime())) return;
+
+          const month = d.getUTCMonth(); // 0-11
+          const quarterIndex = Math.floor(month / 3); // 0-3
+          const quarterLabel = ["Q1", "Q2", "Q3", "Q4"][quarterIndex];
+
+          const existing = byQuarter.get(quarterLabel) || 0;
+          byQuarter.set(quarterLabel, existing + a.amount);
+        });
+
+        const timeRows = [...byQuarter.entries()]
+          .map(([label, value]) => ({ label, value }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        drawTimeChart(timeRows);
+
+        const byType = new Map();
+
+        awards.forEach((a) => {
+          const label = a.type || "No especificado";
+          const existing = byType.get(label) || 0;
+          byType.set(label, existing + a.amount);
+        });
+
+        const typeRows = [...byType.entries()]
+          .map(([label, value]) => ({ label, value }))
+          .sort((a, b) => b.value - a.value);
+
+        drawTypeChart(typeRows);
+
+        drawTable(awards);
+
+        const timestamp = new Intl.DateTimeFormat("es-ES", {
+          dateStyle: "medium",
+          timeStyle: "short"
+        }).format(new Date());
+
+        $("#lastUpdate").textContent = `Actualizado: ${timestamp}`;
+      } catch (error) {
+        console.error(error);
+        setError(
+          "No se pudieron cargar los datos desde USAspending. " +
+          "Detalle técnico: " + error.message
+        );
+        $("#badge").textContent = "Consulta fallida";
+        $("#total").textContent = "—";
+        $("#transactions").textContent = "—";
+        $("#average").textContent = "—";
+        $("#topRecipient").textContent = "—";
+        $("#topAmount").textContent = "—";
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    $("#refresh").addEventListener("click", refreshDashboard);
+
+    ["agency", "year", "kind"].forEach((id) => {
+      $(`#${id}`).addEventListener("change", refreshDashboard);
+    });
+
+    refreshDashboard();
+  </script>
+</body>
+</html>
